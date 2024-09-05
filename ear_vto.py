@@ -13,7 +13,7 @@ import os
 load_dotenv()
 
 # Get API URL from environment variables
-API_URL = os.environ["API_URL"]
+API_URL = os.environ.get["API_URL"] # type: ignore
 
 st.title('Earring Virtual Try On')
 
