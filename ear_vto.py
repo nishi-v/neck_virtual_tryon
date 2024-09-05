@@ -118,7 +118,7 @@ else:
 
         # Determine the resize factor
         is_circular = (earring_width == earring_height)
-        resize_factor = 0.05 if is_circular else 0.10
+        resize_factor = 0.01 if is_circular else 0.10
         new_width = int(earring_width * resize_factor)
         new_height = int(earring_height * resize_factor)
         obj_resized = cv2.resize(obj_np, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
