@@ -22,32 +22,38 @@ This application allows users to virtually try on necklaces by overlaying select
 ### Setup
 
 1. Clone the repository:
+   
    git clone https://github.com/nishi-v/neck_virtual_tryon.git
    
 3. Navigate to the project directory:
-   cd your-repository
+
+   cd neck_virtual_tryon
    
 5. Create and activate the Conda environment:
+
    conda env create -f environment.yml
    conda activate your-environment-name
    
 7. Install any additional dependencies:
+
    pip install -r requirements.txt
 
-8. Create a `.env` file in the root directory with the following content:
+9. Create a `.env` file in the root directory with the following content:
+
    API_URL=your_api_url
 
 ## Usage
 
 1. Run the Streamlit app:
+
    streamlit run neck_vto.py
 
 
-2. Open the application in your browser.
-3. Select a necklace from the available options.
-4. Capture an image of your neck using the camera.
-5. The app will process the image and overlay the selected necklace on the captured photo.
-6. View the virtual try-on result.
+3. Open the application in your browser.
+4. Select a necklace from the available options.
+5. Capture an image of your neck using the camera.
+6. The app will process the image and overlay the selected necklace on the captured photo.
+7. View the virtual try-on result.
 
 ## Troubleshooting:
 - Ensure that the .env file is correctly configured with the API URL.
