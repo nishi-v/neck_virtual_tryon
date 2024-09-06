@@ -22,18 +22,23 @@ pip install numpy opencv-python-headless streamlit requests Pillow python-dotenv
 
 ## Setup:
 1. Clone the Repository:
+
    git clone https://github.com/nishi-v/ear_virtual_tryon
    
    cd ear_virtual_tryon
 
 2. Create a .env File:
    In the project directory, create a .env file with the following content:
+
    API_URL=your_api_url
+
    Replace your_api_url with the URL of the API used for detecting ear coordinates.
 
 3. Run the Application:
    Start the application with Streamlit:
+
    streamlit run ear_vto.py
+
    This will open the Streamlit app in your default web browser.
 
 ## How It Works:
