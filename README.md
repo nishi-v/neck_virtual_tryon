@@ -32,6 +32,7 @@ This application allows users to virtually try on necklaces by overlaying select
 5. Create and activate the Conda environment:
 
    conda env create -f environment.yml
+   
    conda activate your-environment-name
    
 7. Install any additional dependencies:
