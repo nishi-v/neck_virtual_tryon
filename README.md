@@ -22,7 +22,7 @@ pip install numpy opencv-python-headless streamlit requests Pillow python-dotenv
 
 ## Setup:
 1. Clone the Repository:
-   git clone https://github.com/your-username/your-repository.git
+   git clone https://github.com/nishi-v/ear_virtual_tryon
    cd your-repository
 
 2. Create a .env File:
@@ -32,7 +32,7 @@ pip install numpy opencv-python-headless streamlit requests Pillow python-dotenv
 
 3. Run the Application:
    Start the application with Streamlit:
-   streamlit run app.py
+   streamlit run ear_vto.py
    This will open the Streamlit app in your default web browser.
 
 ## How It Works:
