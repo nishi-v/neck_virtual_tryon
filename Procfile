@@ -1,1 +1,0 @@
-web: streamlit run ear_vto.py
