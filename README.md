@@ -23,6 +23,7 @@ pip install numpy opencv-python-headless streamlit requests Pillow python-dotenv
 ## Setup:
 1. Clone the Repository:
    git clone https://github.com/nishi-v/ear_virtual_tryon
+   
    cd ear_virtual_tryon
 
 2. Create a .env File:
