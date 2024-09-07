@@ -7,9 +7,14 @@ import os
 import json
 import time
 from dotenv import load_dotenv
+from pathlib import Path
+
+# Get the current working directory
+dir = Path(os.getcwd())
 
 # Load environment variables from .env file
-load_dotenv()
+ENV_PATH = dir / '.env'
+load_dotenv(ENV_PATH)
 
 # Get API URL from environment variables
 API_URL = os.environ["API_URL"]
@@ -168,20 +173,31 @@ if not st.session_state.necklace_selected:
 else:
     st.image(st.session_state.necklace_img, caption="Selected Necklace", width=200)
 
-    # Capture image
-    capture_img = st.camera_input("Capture an image of the face")
+    # Provide options to either upload or capture an image
+    option = st.radio("Choose Image Source", ("Capture Image", "Upload Image"))
 
-    if capture_img is not None:
-        try:
-            with open("temp_image_cam.jpg", "wb") as f:
-                f.write(capture_img.getbuffer())
-        except Exception as e:
-            st.error(f"Error saving uploaded image: {e}")
+    if option == "Capture Image":
+        # Streamlit widget to capture an image using the webcam
+        camera_image = st.camera_input("Capture an image of the wrist")
+        if camera_image is not None:
+            with open(dir / "temp_image_cam.jpg", "wb") as f:
+                f.write(camera_image.getbuffer())
+            img_path = str(dir / 'temp_image_cam.jpg')
 
+    elif option == "Upload Image":
+        # Streamlit widget to upload an image
+        uploaded_image = st.file_uploader("Upload an image of the wrist", type=["jpg", "jpeg", "png"])
+        if uploaded_image is not None:
+            with open(dir / "temp_image.jpg", "wb") as f:
+                f.write(uploaded_image.getbuffer())
+            img_path = str(dir / 'temp_image.jpg')
+
+    # Proceed if either a camera or uploaded image is available
+    if (option == "Capture Image" and camera_image) or (option == "Upload Image" and uploaded_image):
         start = time.time()
 
         payload = {'isEar': 'false', 'isNeck': 'true'}
-        files = [('image', ('temp_image_cam.jpg', open('temp_image_cam.jpg', 'rb'), 'image/jpeg'))]
+        files = [('image', (img_path, open(img_path, 'rb'), 'image/jpeg'))]
         headers = {}
 
         try:
@@ -198,7 +214,7 @@ else:
         except (requests.RequestException, json.JSONDecodeError) as e:
             st.error(f"Error with API request: {e}")
 
-        st.image("temp_image_cam.jpg", caption="Captured Image", width=400)
+        st.image(img_path, caption="Captured Image", width=400)
 
         if st.session_state.type_detected:
             st.write("Neck types detected:")
@@ -206,7 +222,7 @@ else:
             st.session_state.type = selected_type
 
             if st.session_state.selected_necklace:
-                face_img = np.array(Image.open("temp_image_cam.jpg").convert("RGB"))
+                face_img = np.array(Image.open(img_path).convert("RGB"))
                 necklace_img = np.array(st.session_state.necklace_img)
                 result_img = overlay_necklace(face_img, necklace_img)
 
