@@ -253,5 +253,3 @@ else:
 
                 if result_img is not None:
                     st.image(result_img, caption="Virtual Try-On Result", width=300)
-
-
