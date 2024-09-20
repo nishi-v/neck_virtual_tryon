@@ -209,6 +209,8 @@ else:
             'Authorization': f"Bearer {BEARER_TOKEN}"
         }
         response = requests.post(API_URL, headers=headers, data=payload, files=files, verify=False)
+        end = time.time() - start
+        st.write(f"Time taken: {end}")
         results = response.text
         try:
             data = json.loads(results)
