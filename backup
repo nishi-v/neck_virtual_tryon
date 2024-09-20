@@ -74,7 +74,6 @@ def get_necklace_endpoints(necklace_img_np: np.ndarray) -> tuple[tuple[int, int]
 
     return left_adjusted, right_adjusted
 
-
 # Function to overlay the necklace on the face image
 def overlay_necklace(face_img, necklace_img):
     if st.session_state.type is None:
@@ -120,11 +119,7 @@ def overlay_necklace(face_img, necklace_img):
 
     center = ((right_end_necklace[0] + left_end_necklace[0]) / 2,
               (right_end_necklace[1] + left_end_necklace[1]) / 2)
-
-    # Slight rotation adjustment (e.g., 5 degrees)
-    slight_rotation_angle = 5  # Adjust this value as needed
-    rotation_matrix = cv2.getRotationMatrix2D(center, neck_angle + slight_rotation_angle, 1)
-
+    rotation_matrix = cv2.getRotationMatrix2D(center, neck_angle, 1)
     try:
         rotated_necklace = cv2.warpAffine(resized_necklace, rotation_matrix, (new_width, new_height),
                                           flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
@@ -152,7 +147,6 @@ def overlay_necklace(face_img, necklace_img):
 
     result_img = Image.fromarray(overlay_img_np)
     return result_img
-
 
 # Function to draw neck coordinates on the image
 def draw_neck_coordinates(image, coordinates):
@@ -249,6 +243,4 @@ else:
                 result_img = overlay_necklace(face_img, necklace_img)
 
                 if result_img is not None:
-                    st.image(result_img, caption="Virtual Try-On Result", width=300)
-
-
+                    st.image(result_img, caption="Virtual Try-On Result", width=200)
