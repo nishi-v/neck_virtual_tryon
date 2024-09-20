@@ -74,8 +74,6 @@ def get_necklace_endpoints(necklace_img_np: np.ndarray) -> tuple[tuple[int, int]
 
     return left_adjusted, right_adjusted
 
-
-# Function to overlay the necklace on the face image
 def overlay_necklace(face_img: np.ndarray, necklace_img: np.ndarray):
     if st.session_state.type is None:
         st.error("No neck type selected.")
@@ -93,9 +91,11 @@ def overlay_necklace(face_img: np.ndarray, necklace_img: np.ndarray):
     right_neck = tuple(type_data["right_point"])
     neck_angle = type_data["rotation_angle"]
 
-    # Add a slight additional rotation to the right (e.g., +5 degrees)
-    adjustment_angle = 5
-    neck_angle += adjustment_angle
+    # Set the threshold for rotation
+    THRESHOLD_ANGLE = 5
+
+    # Determine if rotation is necessary
+    rotate_necklace = abs(neck_angle) > THRESHOLD_ANGLE
 
     img_height, img_width = face_img.shape[:2]
     left_neck_pixel = (int(left_neck[0] * img_width), int(left_neck[1] * img_height))
@@ -107,34 +107,15 @@ def overlay_necklace(face_img: np.ndarray, necklace_img: np.ndarray):
         int((left_neck_pixel[1] + right_neck_pixel[1]) / 2)
     )
 
-    # Calculate necklace endpoints and center
-    necklace_center = (
-        int((left_end_necklace[0] + right_end_necklace[0]) / 2),
-        int((left_end_necklace[1] + right_end_necklace[1]) / 2)
-    )
-
-    # Calculate neck width
-    neck_distance = np.linalg.norm(np.array(left_neck_pixel) - np.array(right_neck_pixel))
-    necklace_distance = np.linalg.norm(np.array(left_end_necklace) - np.array(right_end_necklace))
-
-    if necklace_distance <= 0:
-        st.error("Invalid necklace distance for scaling.")
-        return None
-
     # Scale the necklace
-    scaling_factor = neck_distance / necklace_distance
+    necklace_distance = np.linalg.norm(np.array(left_end_necklace) - np.array(right_end_necklace))
+    neck_distance = np.linalg.norm(np.array(left_neck_pixel) - np.array(right_neck_pixel))
+    
+    scaling_factor = neck_distance / necklace_distance if necklace_distance > 0 else 1
     new_width = int(necklace_img.shape[1] * scaling_factor)
     new_height = int(necklace_img.shape[0] * scaling_factor)
 
-    if new_width <= 0 or new_height <= 0:
-        st.error("Invalid dimensions for resized necklace.")
-        return None
-
-    try:
-        resized_necklace = cv2.resize(necklace_img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
-    except Exception as e:
-        st.error(f"Error resizing necklace image: {e}")
-        return None
+    resized_necklace = cv2.resize(necklace_img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
 
     # Calculate resized necklace endpoints and center
     resized_left_end_necklace, resized_right_end_necklace = get_necklace_endpoints(resized_necklace)
@@ -144,43 +125,28 @@ def overlay_necklace(face_img: np.ndarray, necklace_img: np.ndarray):
     )
 
     # Calculate offsets to align points
-    x_offset_left = left_neck_pixel[0] - resized_left_end_necklace[0]
-    y_offset_left = left_neck_pixel[1] - resized_left_end_necklace[1]
+    x_offset = neck_center_pixel[0] - resized_necklace_center[0]
+    y_offset = neck_center_pixel[1] - resized_necklace_center[1]
 
-    x_offset_center = neck_center_pixel[0] - resized_necklace_center[0]
-    y_offset_center = neck_center_pixel[1] - resized_necklace_center[1]
-
-    x_offset_right = right_neck_pixel[0] - resized_right_end_necklace[0]
-    y_offset_right = right_neck_pixel[1] - resized_right_end_necklace[1]
-
-    # Average offsets to get a single position
-    x_offset = (x_offset_left + x_offset_center + x_offset_right) // 3
-    y_offset = (y_offset_left + y_offset_center + y_offset_right) // 3
-
-    # Rotate the necklace with the adjusted angle
-    try:
-        center_of_rotation = resized_necklace_center
-        rotation_matrix = cv2.getRotationMatrix2D(center_of_rotation, neck_angle, 1)
+    # Apply slight right rotation if needed
+    if rotate_necklace:
+        neck_angle += 5  # Slight adjustment for right rotation
+        rotation_matrix = cv2.getRotationMatrix2D(resized_necklace_center, neck_angle, 1)
         rotated_necklace = cv2.warpAffine(resized_necklace, rotation_matrix, (new_width, new_height),
-                                          flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-    except Exception as e:
-        st.error(f"Error rotating necklace image: {e}")
-        return None
+                                          flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    else:
+        rotated_necklace = resized_necklace
 
-    try:
-        # Overlay the rotated necklace on the face image
-        overlay = Image.fromarray(face_img).convert("RGBA")
-        necklace_overlay = Image.fromarray(rotated_necklace, "RGBA")
-        overlay.paste(necklace_overlay, (x_offset, y_offset), necklace_overlay)
-    except Exception as e:
-        st.error(f"Error overlaying necklace on face image: {e}")
-        return None
+    # Overlay the necklace on the face image
+    overlay = Image.fromarray(face_img).convert("RGBA")
+    necklace_overlay = Image.fromarray(rotated_necklace, "RGBA")
+    overlay.paste(necklace_overlay, (x_offset, y_offset), necklace_overlay)
 
-    # Draw the neck points on the final overlayed image (optional)
+    # Optional: Draw neck points for debugging
     overlay_img_np = np.array(overlay)
-    point_radius = 3  # Radius for drawing neck points
+    point_radius = 3
     for point in [left_neck_pixel, right_neck_pixel]:
-        cv2.circle(overlay_img_np, point, point_radius, (255, 0, 0), -1)  # Red points
+        cv2.circle(overlay_img_np, point, point_radius, (255, 0, 0), -1)
 
     result_img = Image.fromarray(overlay_img_np)
     return result_img
