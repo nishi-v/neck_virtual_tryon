@@ -186,7 +186,7 @@ else:
 
     if option == "Capture Image":
         # Streamlit widget to capture an image using the webcam
-        camera_image = st.camera_input("Capture an image of the wrist")
+        camera_image = st.camera_input("Capture an image of the neck")
         if camera_image is not None:
             with open(dir / "temp_image_cam.jpg", "wb") as f:
                 f.write(camera_image.getbuffer())
@@ -194,7 +194,7 @@ else:
 
     elif option == "Upload Image":
         # Streamlit widget to upload an image
-        uploaded_image = st.file_uploader("Upload an image of the wrist", type=["jpg", "jpeg", "png"])
+        uploaded_image = st.file_uploader("Upload an image of the neck", type=["jpg", "jpeg", "png"])
         if uploaded_image is not None:
             with open(dir / "temp_image.jpg", "wb") as f:
                 f.write(uploaded_image.getbuffer())
@@ -236,7 +236,7 @@ else:
             st.write("Error: Expected data format is not present in the response.")
             st.write("Here's the response text:")
             st.write(results)  # Display raw response text
-            st.error("Failed to find expected 'wrist' data in the API response.")
+            st.error("Failed to find expected 'neck' data in the API response.")
             st.stop()
 
         st.image(img_path, caption="Captured Image", width=400)
