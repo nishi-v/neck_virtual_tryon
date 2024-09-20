@@ -103,7 +103,7 @@ def overlay_necklace(face_img, necklace_img):
     if necklace_distance <= 0:
         st.error("Invalid necklace distance for scaling.")
         return None
-    
+
     scaling_factor = neck_distance / necklace_distance
     new_width = int(necklace_img.shape[1] * scaling_factor)
     new_height = int(necklace_img.shape[0] * scaling_factor)
@@ -121,16 +121,17 @@ def overlay_necklace(face_img, necklace_img):
     center = ((right_end_necklace[0] + left_end_necklace[0]) / 2,
               (right_end_necklace[1] + left_end_necklace[1]) / 2)
 
-    # Slight rotation adjustment (e.g., 5 degrees)
-    slight_rotation_angle = 5  # Adjust this value as needed
-    rotation_matrix = cv2.getRotationMatrix2D(center, neck_angle + slight_rotation_angle, 1)
-
-    try:
-        rotated_necklace = cv2.warpAffine(resized_necklace, rotation_matrix, (new_width, new_height),
-                                          flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-    except Exception as e:
-        st.error(f"Error rotating necklace image: {e}")
-        return None
+    # Only apply rotation if it's necessary
+    if neck_angle != 0:  # Check if rotation is needed
+        try:
+            rotation_matrix = cv2.getRotationMatrix2D(center, neck_angle, 1)
+            rotated_necklace = cv2.warpAffine(resized_necklace, rotation_matrix, (new_width, new_height),
+                                              flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
+        except Exception as e:
+            st.error(f"Error rotating necklace image: {e}")
+            return None
+    else:
+        rotated_necklace = resized_necklace  # No rotation needed
 
     resized_left_end_necklace, resized_right_end_necklace = get_necklace_endpoints(rotated_necklace)
     x_offset = left_neck_pixel[0] - resized_left_end_necklace[0]
