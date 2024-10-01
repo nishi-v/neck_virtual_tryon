@@ -39,7 +39,8 @@ necklaces = {
     "Necklace 3": "necklace/NFPW003S1F.png",
     "Necklace 4": "necklace/NFTG001S1F.png",
     "Necklace 5": "necklace/NMP006S1F.png",
-    "Necklace 6": "necklace/NMPW005G1F.png"
+    "Necklace 6": "necklace/NMPW005G1F.png",
+    "Necklace 7": "necklace/download.png"
 }
 
 # Function to get the leftmost and rightmost points of the necklace
@@ -89,66 +90,88 @@ def overlay_necklace(face_img: np.ndarray, necklace_img: np.ndarray):
     type_data = neck_coordinates[st.session_state.type]
     left_neck = tuple(type_data["left_point"])
     right_neck = tuple(type_data["right_point"])
-    neck_angle = type_data["rotation_angle"]
-
-    # Set the threshold for rotation
-    THRESHOLD_ANGLE = 5
-
-    # Determine if rotation is necessary
-    rotate_necklace = abs(neck_angle) > THRESHOLD_ANGLE
+    rotation_angle = type_data["rotation_angle"]
 
     img_height, img_width = face_img.shape[:2]
     left_neck_pixel = (int(left_neck[0] * img_width), int(left_neck[1] * img_height))
     right_neck_pixel = (int(right_neck[0] * img_width), int(right_neck[1] * img_height))
 
-    # Calculate the center point of the neck
+    # Calculate the neck center and average y-coordinate
     neck_center_pixel = (
         int((left_neck_pixel[0] + right_neck_pixel[0]) / 2),
         int((left_neck_pixel[1] + right_neck_pixel[1]) / 2)
     )
+    average_y_neck = (left_neck_pixel[1] + right_neck_pixel[1]) // 2
 
-    # Scale the necklace
-    necklace_distance = np.linalg.norm(np.array(left_end_necklace) - np.array(right_end_necklace))
+    # Calculate the distance and angle between neck points
     neck_distance = np.linalg.norm(np.array(left_neck_pixel) - np.array(right_neck_pixel))
+    necklace_distance = np.linalg.norm(np.array(left_end_necklace) - np.array(right_end_necklace))
     
     scaling_factor = neck_distance / necklace_distance if necklace_distance > 0 else 1
+    
+    # Resize the necklace image based on the scaling factor
     new_width = int(necklace_img.shape[1] * scaling_factor)
     new_height = int(necklace_img.shape[0] * scaling_factor)
-
     resized_necklace = cv2.resize(necklace_img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
 
-    # Calculate resized necklace endpoints and center
-    resized_left_end_necklace, resized_right_end_necklace = get_necklace_endpoints(resized_necklace)
-    resized_necklace_center = (
-        int((resized_left_end_necklace[0] + resized_right_end_necklace[0]) / 2),
-        int((resized_left_end_necklace[1] + resized_right_end_necklace[1]) / 2)
-    )
+    # Calculate angle between neck points
+    neck_angle = np.degrees(np.arctan2(right_neck_pixel[1] - left_neck_pixel[1], 
+                                       right_neck_pixel[0] - left_neck_pixel[0]))
+    
+    # Flip the sign of the angle to correct the direction
+    neck_angle = - neck_angle  # Flip the angle for correct direction
+    st.write(f"Given neck angle: {rotation_angle}")
+    st.write(f"Rotation angle calculated: {neck_angle}")
+    st.write("Using neck angle calculated using angle between neck points.")
 
-    # Calculate offsets to align points
-    x_offset = neck_center_pixel[0] - resized_necklace_center[0]
-    y_offset = neck_center_pixel[1] - resized_necklace_center[1]
+    # Rotate the resized necklace around its center by the corrected neck angle
+    rotation_matrix = cv2.getRotationMatrix2D((new_width // 2, new_height // 2), neck_angle, 1)
+    rotated_necklace = cv2.warpAffine(resized_necklace, rotation_matrix, (new_width, new_height), 
+                                      flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-    # Apply slight right rotation if needed
-    if rotate_necklace:
-        neck_angle += 5  # Slight adjustment for right rotation
-        rotation_matrix = cv2.getRotationMatrix2D(resized_necklace_center, neck_angle, 1)
-        rotated_necklace = cv2.warpAffine(resized_necklace, rotation_matrix, (new_width, new_height),
-                                          flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    else:
-        rotated_necklace = resized_necklace
+    # Calculate offsets to align the necklace with neck points
+    resized_left_end_necklace, resized_right_end_necklace = get_necklace_endpoints(rotated_necklace)
 
-    # Overlay the necklace on the face image
+    # Set y_offset to align the top of the necklace with the average y of the neck points
+    y_offset = average_y_neck #- (new_height // 10)  # Adjust so the top aligns with the neck
+    x_offset = neck_center_pixel[0] - (new_width // 2)  # Center the necklace horizontally
+
+    # Overlay the rotated necklace onto the face image
     overlay = Image.fromarray(face_img).convert("RGBA")
     necklace_overlay = Image.fromarray(rotated_necklace, "RGBA")
     overlay.paste(necklace_overlay, (x_offset, y_offset), necklace_overlay)
 
-    # Optional: Draw neck points for debugging
+    # Convert the overlay back to NumPy for OpenCV drawing
     overlay_img_np = np.array(overlay)
-    point_radius = 3
-    for point in [left_neck_pixel, right_neck_pixel]:
-        cv2.circle(overlay_img_np, point, point_radius, (255, 0, 0), -1)
 
-    result_img = Image.fromarray(overlay_img_np)
+    # Convert the overlay image to BGR for OpenCV operations
+    overlay_img_bgr = cv2.cvtColor(overlay_img_np, cv2.COLOR_RGBA2BGR)
+    
+    # Define the color for the points (red) and contours (green)
+    red_color = (255, 0, 0)  # BGR format for red
+    green_color = (0, 255, 0)  # BGR format for green
+
+    # Draw red circles at the neck points
+    point_radius = int(img_height/200)
+    for point in [left_neck_pixel, right_neck_pixel]:
+        cv2.circle(overlay_img_bgr, point, point_radius, red_color, -1)
+
+    # Convert the rotated necklace to grayscale for contour detection
+    necklace_gray = cv2.cvtColor(np.array(necklace_overlay), cv2.COLOR_RGBA2GRAY)
+    _, thresh = cv2.threshold(necklace_gray, 1, 255, cv2.THRESH_BINARY)
+
+    # Find contours in the thresholded necklace image
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Draw contours (green) around the necklace
+    if contours:
+        cv2.drawContours(overlay_img_bgr, contours, -1, green_color, 2, offset=(x_offset, y_offset))
+
+    # Convert the image back to RGBA to maintain transparency
+    overlay_img_rgba = cv2.cvtColor(overlay_img_bgr, cv2.COLOR_BGR2RGBA)
+
+    # Convert back to PIL for final output
+    result_img = Image.fromarray(overlay_img_rgba)
     return result_img
 
 if not st.session_state.necklace_selected:
